@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"strings"
 )
 
 type RulesConfig struct {
@@ -19,8 +20,15 @@ type RulesEngine struct {
 	Outcome string
 }
 
+type Operator struct {
+	Term    string
+	Func    func(*Rule, *Rule) interface{}
+	Explain func(*Rule, *Rule) string
+}
+
 type RulesResponse struct {
-	Outcome string `json:outcome`
+	Outcome     string `json:outcome`
+	Explanation string `json:explanation`
 }
 
 func toFloat64(value interface{}, re *RulesEngine) float64 {
@@ -33,7 +41,8 @@ func toFloat64(value interface{}, re *RulesEngine) float64 {
 
 	switch v := value.(type) {
 	case *Rule:
-		fmt.Println("A")
+		return toFloat64(v.Run(re), re)
+	case Rule:
 		return toFloat64(v.Run(re), re)
 
 	case string:
@@ -54,6 +63,47 @@ func toFloat64(value interface{}, re *RulesEngine) float64 {
 	return 0
 }
 
+func toBool(value interface{}, re *RulesEngine) bool {
+	switch v := value.(type) {
+	case *Rule:
+		if v.Value != "" {
+
+			return toBool(v.Value, re)
+		}
+	}
+
+	switch v := value.(type) {
+	case Rule:
+		return toBool(v.Run(re), re)
+	case *Rule:
+		return toBool(v.Run(re), re)
+	case bool:
+		return v
+	case string:
+		if v == "true" {
+			return true
+		} else {
+			return false
+		}
+	case int:
+		if v != 1 {
+			return true
+		} else {
+			return false
+		}
+	case float64:
+		if v != 1 {
+			return true
+		} else {
+			return false
+		}
+	default:
+		fmt.Println(value)
+		fmt.Println("unknown type for toBool")
+	}
+	return false
+}
+
 func toString(value interface{}, re *RulesEngine) string {
 	switch v := value.(type) {
 	case *Rule:
@@ -65,7 +115,8 @@ func toString(value interface{}, re *RulesEngine) string {
 
 	switch v := value.(type) {
 	case Rule:
-		fmt.Println("A")
+		return toString(v.Run(re), re)
+	case *Rule:
 		return toString(v.Run(re), re)
 	case string:
 		return v
@@ -112,34 +163,75 @@ func (re *RulesEngine) Run() (string, []RuleResult) {
 	return result, re.stack
 }
 
-func (re *RulesEngine) Operators() map[string]func(*Rule, *Rule) interface{} {
-	return map[string]func(*Rule, *Rule) interface{}{
-		">=": func(left *Rule, right *Rule) interface{} {
-			return toFloat64(left, re) >= toFloat64(right, re)
+func (re *RulesEngine) Operators() map[string]Operator {
+	return map[string]Operator{
+		">=": {
+			Term: "greater than or equal to",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toFloat64(left, re) >= toFloat64(right, re)
+			},
+			// Explain: func(left *Rule, right *Rule) string {
+			// 	return toFloat64(left, re) >= toFloat64(right, re)
+			// },
 		},
-		">": func(left *Rule, right *Rule) interface{} {
-			return toFloat64(left, re) > toFloat64(right, re)
+		">": {
+			Term: "greater than",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toFloat64(left, re) > toFloat64(right, re)
+			},
 		},
-		"<=": func(left *Rule, right *Rule) interface{} {
-
-			return toFloat64(left, re) <= toFloat64(right, re)
+		"<=": {
+			Term: "less than or equal to",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toFloat64(left, re) <= toFloat64(right, re)
+			},
 		},
-		"<": func(left *Rule, right *Rule) interface{} {
-			return toFloat64(left, re) < toFloat64(right, re)
+		"<": {
+			Term: "less than",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toFloat64(left, re) < toFloat64(right, re)
+			},
 		},
-		"==": func(left *Rule, right *Rule) interface{} {
-			return toString(left, re) == toString(right, re)
+		"EQL": {
+			Term: "equal to",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toString(left, re) == toString(right, re)
+			},
 		},
-		"GET": func(left *Rule, right *Rule) interface{} {
-			return re.Config.Data[toString(right, re)]
+		"AND": {
+			Term: "and",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return toBool(left, re) && toBool(right, re)
+			},
+		},
+		"GET": {
+			Term: "and",
+			Func: func(left *Rule, right *Rule) interface{} {
+				return re.Config.Data[toString(right, re)]
+			},
+			Explain: func(left *Rule, right *Rule) string {
+				return toString(right, re)
+			},
 		},
 	}
+}
+
+func (re *RulesEngine) Explain() string {
+	var explanation []string
+	for _, result := range re.stack {
+		explanation = append(explanation, result.Explanation)
+	}
+
+	str := strings.Join(explanation, " ")
+
+	return str
 }
 
 func (re *RulesEngine) JsonResponse() RulesResponse {
 
 	return RulesResponse{
-		Outcome: re.Outcome,
+		Outcome:     re.Outcome,
+		Explanation: re.Explain(),
 	}
 
 }

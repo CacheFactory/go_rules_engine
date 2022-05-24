@@ -9,31 +9,35 @@ type Rule struct {
 }
 
 type RuleResult struct {
-	Outcome  interface{}
-	Left     string
-	Right    string
-	Operator string
+	Outcome     interface{}
+	Left        string
+	Right       string
+	Operator    string
+	Explanation string
 }
 
 func (rule *Rule) Run(re *RulesEngine) interface{} {
 	operators := re.Operators()
 
-	var left string
-	var right string
+	result := operators[rule.Operator].Func(rule.LeftOperand, rule.RightOperand)
 
-	// if rule.LeftOperand != nil {
-	// 	left = toString(rule.LeftOperand, re)
-	// }
+	var explanation string
 
-	// if rule.RightOperand != nil {
-	// 	right = toString(rule.RightOperand, re)
-	// }
+	if rule.LeftOperand != nil && rule.RightOperand != nil {
+		explanation = toString(rule.LeftOperand, re) + " is " + operators[rule.Operator].Term + " " + toString(rule.RightOperand, re)
+	}
 
 	re.stack = append(re.stack, RuleResult{
-		Operator: rule.Operator,
-		Left:     left,
-		Right:    right,
+		Operator:    rule.Operator,
+		Outcome:     result,
+		Explanation: explanation,
 	})
 
-	return operators[rule.Operator](rule.LeftOperand, rule.RightOperand)
+	return result
 }
+
+// func (rule *Rule) Explain(re *RulesEngine) string {
+// 	operators := re.Operators()
+// 	operator := operators[rule.Operator]
+
+// }

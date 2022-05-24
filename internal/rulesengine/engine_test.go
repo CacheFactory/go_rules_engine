@@ -6,23 +6,43 @@ import (
 )
 
 func TestRule(t *testing.T) {
-	rulesJson := `{
+	rulesJson := `
+	{
 		"condition": {
-			"operator": "<=",
+			"operator": "AND",
 			"left_operand": {
-				"operator": "GET",
-				"right_operand": {"value": "age"}
-			}, 
-			"right_operand": {"value": "40"}
+				"operator": "EQL",
+				"left_operand": {
+					"value": "M"
+				},
+				"right_operand": {
+					"operator": "GET",
+					"right_operand": {
+						"value": "gender"
+					}
+				}
+			},
+			"right_operand": {
+				"operator": ">=",
+				"left_operand": {
+					"operator": "GET",
+					"right_operand": {
+						"value": "age"
+					}
+				},
+				"right_operand": {
+					"value": "18"
+				}
+			}
 		},
-
 		"subject": "Eddie",
 		"outcome": "eligible for the draft",
-
 		"data": {
-			"age": "35"
+			"age": "35",
+			"gender": "M"
 		}
-	}`
+	}
+	`
 
 	rulesEngine, err := FromJson(rulesJson)
 
