@@ -38,7 +38,7 @@ func TestRule(t *testing.T) {
 		"subject": "Eddie",
 		"outcome": "eligible for the draft",
 		"data": {
-			"age": "35",
+			"age": "18",
 			"gender": "M"
 		}
 	}

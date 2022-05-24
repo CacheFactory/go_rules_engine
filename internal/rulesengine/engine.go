@@ -21,14 +21,14 @@ type RulesEngine struct {
 }
 
 type Operator struct {
-	Term    string
-	Func    func(*Rule, *Rule) interface{}
-	Explain func(*Rule, *Rule) string
+	Term string
+	Func func(*Rule, *Rule) interface{}
 }
 
 type RulesResponse struct {
-	Outcome     string `json:outcome`
-	Explanation string `json:explanation`
+	Outcome     string       `json:outcome`
+	Explanation string       `json:explanation`
+	Results     []RuleResult `json:results`
 }
 
 func toFloat64(value interface{}, re *RulesEngine) float64 {
@@ -41,9 +41,9 @@ func toFloat64(value interface{}, re *RulesEngine) float64 {
 
 	switch v := value.(type) {
 	case *Rule:
-		return toFloat64(v.Run(re), re)
+		return toFloat64(v.Run(re, false), re)
 	case Rule:
-		return toFloat64(v.Run(re), re)
+		return toFloat64(v.Run(re, false), re)
 
 	case string:
 		retVal, err := strconv.ParseFloat(v, 64)
@@ -74,9 +74,9 @@ func toBool(value interface{}, re *RulesEngine) bool {
 
 	switch v := value.(type) {
 	case Rule:
-		return toBool(v.Run(re), re)
+		return toBool(v.Run(re, false), re)
 	case *Rule:
-		return toBool(v.Run(re), re)
+		return toBool(v.Run(re, false), re)
 	case bool:
 		return v
 	case string:
@@ -104,20 +104,53 @@ func toBool(value interface{}, re *RulesEngine) bool {
 	return false
 }
 
-func toString(value interface{}, re *RulesEngine) string {
+// func toExplanation(value interface{}, re *RulesEngine) string {
+// 	switch v := value.(type) {
+// 	case *Rule:
+// 		if v.Value != "" {
+
+// 			return toExplanation(v.Value, re)
+// 		}
+// 	}
+
+// 	switch v := value.(type) {
+// 	case Rule:
+// 		return toExplanation(v.Run(re, true), re)
+// 	case *Rule:
+// 		return toExplanation(v.Run(re, true), re)
+// 	case string:
+// 		return v
+// 	case int:
+// 		return strconv.Itoa(v)
+// 	case float64:
+// 		return strconv.FormatFloat(v, 'E', -1, 64)
+// 	case bool:
+// 		if v == true {
+// 			return "true"
+// 		} else {
+// 			return "false"
+// 		}
+
+// 	default:
+// 		fmt.Println("unknown type for toString")
+// 	}
+// 	return ""
+// }
+
+func toString(value interface{}, re *RulesEngine, doNotPushToStack bool) string {
 	switch v := value.(type) {
 	case *Rule:
 		if v.Value != "" {
 
-			return toString(v.Value, re)
+			return toString(v.Value, re, doNotPushToStack)
 		}
 	}
 
 	switch v := value.(type) {
 	case Rule:
-		return toString(v.Run(re), re)
+		return toString(v.Run(re, doNotPushToStack), re, doNotPushToStack)
 	case *Rule:
-		return toString(v.Run(re), re)
+		return toString(v.Run(re, doNotPushToStack), re, doNotPushToStack)
 	case string:
 		return v
 	case int:
@@ -170,9 +203,6 @@ func (re *RulesEngine) Operators() map[string]Operator {
 			Func: func(left *Rule, right *Rule) interface{} {
 				return toFloat64(left, re) >= toFloat64(right, re)
 			},
-			// Explain: func(left *Rule, right *Rule) string {
-			// 	return toFloat64(left, re) >= toFloat64(right, re)
-			// },
 		},
 		">": {
 			Term: "greater than",
@@ -195,22 +225,19 @@ func (re *RulesEngine) Operators() map[string]Operator {
 		"EQL": {
 			Term: "equal to",
 			Func: func(left *Rule, right *Rule) interface{} {
-				return toString(left, re) == toString(right, re)
+				return toString(left, re, true) == toString(right, re, true)
 			},
 		},
 		"AND": {
-			Term: "and",
+			Term: "the same as",
 			Func: func(left *Rule, right *Rule) interface{} {
 				return toBool(left, re) && toBool(right, re)
 			},
 		},
 		"GET": {
-			Term: "and",
+			Term: "get",
 			Func: func(left *Rule, right *Rule) interface{} {
-				return re.Config.Data[toString(right, re)]
-			},
-			Explain: func(left *Rule, right *Rule) string {
-				return toString(right, re)
+				return re.Config.Data[toString(right, re, true)]
 			},
 		},
 	}
@@ -230,18 +257,14 @@ func (re *RulesEngine) Explain() string {
 func (re *RulesEngine) JsonResponse() RulesResponse {
 
 	return RulesResponse{
-		Outcome:     re.Outcome,
-		Explanation: re.Explain(),
+		Outcome: re.Outcome,
+		Results: re.stack,
 	}
 
 }
 
 func (re *RulesEngine) runRule(rule Rule) string {
 
-	// result := RuleResult{
-	// 	Outcome: rule.Run(re),
-	// }
-
-	return toString(rule, re)
+	return toString(rule, re, false)
 
 }
