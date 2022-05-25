@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -21,6 +22,7 @@ func engine(w http.ResponseWriter, req *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+	fmt.Println("Processing rule set")
 	engine.Run()
 
 	jsonResponse, _ := json.Marshal(engine.JsonResponse())
@@ -31,7 +33,7 @@ func engine(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
-
 	http.HandleFunc("/rules_engine", engine)
 	http.ListenAndServe(":8090", nil)
+	fmt.Println("Listening on port 8090")
 }
