@@ -16,30 +16,12 @@ type RuleResult struct {
 	Explanation string
 }
 
-func (rule *Rule) Run(re *RulesEngine, doNotPushToStack bool) interface{} {
+func (rule *Rule) Run(re *RulesEngine) (interface{}, string) {
 	operators := re.Operators()
 
 	result := operators[rule.Operator].Func(rule.LeftOperand, rule.RightOperand)
-	if doNotPushToStack != true {
-		var explanation string
 
-		if rule.LeftOperand != nil && rule.RightOperand != nil {
-			term := " is "
-			if toBool(result, re) == false {
-				term = " is not "
-			}
+	explanation := operators[rule.Operator].Explanation(rule.LeftOperand, rule.RightOperand, toBool(result, re))
 
-			explanation = toString(rule.LeftOperand, re, true) + term + operators[rule.Operator].Term + " " + toString(rule.RightOperand, re, true)
-			//explanation = toExplanation(rule.LeftOperand, re, true) + " is " + operators[rule.Operator].Term + " " + toExplanation(rule.RightOperand, re, true)
-
-			re.stack = append(re.stack, RuleResult{
-				Operator:    rule.Operator,
-				Outcome:     result,
-				Explanation: explanation,
-			})
-		}
-
-	}
-
-	return result
+	return result, explanation
 }

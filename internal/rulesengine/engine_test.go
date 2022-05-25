@@ -1,7 +1,6 @@
 package rulesengine
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -50,12 +49,14 @@ func TestRule(t *testing.T) {
 		panic(err)
 	}
 
-	result, stack := rulesEngine.Run()
+	result, _ := rulesEngine.Run()
 
 	if result != "true" {
 		t.Errorf("incorrect result")
 	}
 
-	fmt.Println(stack)
+	if rulesEngine.Explanation != "M IS EQUAL TO M (gender) AND 18 (age) IS GREATER THAN OR EQUAL TO 18" {
+		t.Errorf("incorrect result")
+	}
 
 }
