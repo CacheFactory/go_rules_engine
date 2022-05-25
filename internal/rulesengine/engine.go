@@ -15,7 +15,6 @@ type RulesConfig struct {
 
 type RulesEngine struct {
 	Config      RulesConfig
-	stack       []RuleResult
 	Explanation string
 	Outcome     string
 }
@@ -27,9 +26,9 @@ type Operator struct {
 }
 
 type RulesResponse struct {
-	Outcome     string       `json:outcome`
-	Explanation string       `json:explanation`
-	Results     []RuleResult `json:results`
+	Outcome          string `json:outcome`
+	Explanation      string `json:explanation`
+	ConditionResults Rule   `json:condition_results`
 }
 
 func isOrNot(x bool) string {
@@ -119,11 +118,9 @@ func toExplanation(value interface{}, re *RulesEngine) string {
 
 	switch v := value.(type) {
 	case Rule:
-		result := re.Operators()[v.Operator].Func(v.LeftOperand, v.RightOperand)
-		return re.Operators()[v.Operator].Explanation(v.LeftOperand, v.RightOperand, toBool(result, re))
+		return v.Explain(re)
 	case *Rule:
-		result := re.Operators()[v.Operator].Func(v.LeftOperand, v.RightOperand)
-		return re.Operators()[v.Operator].Explanation(v.LeftOperand, v.RightOperand, toBool(result, re))
+		return v.Explain(re)
 	case string:
 		return v
 	case float64:
@@ -194,7 +191,7 @@ func New(config RulesConfig) *RulesEngine {
 }
 
 func (re *RulesEngine) Run() (string, string) {
-	result, explanation := re.runRule(re.Config.Condition)
+	result, explanation := re.runRule(&re.Config.Condition)
 	re.Outcome = result
 	re.Explanation = explanation
 	return result, explanation
@@ -274,14 +271,15 @@ func (re *RulesEngine) Operators() map[string]Operator {
 func (re *RulesEngine) JsonResponse() RulesResponse {
 
 	return RulesResponse{
-		Outcome:     re.Outcome,
-		Results:     re.stack,
-		Explanation: re.Explanation,
+		Outcome: re.Outcome,
+		//Results:          re.stack,
+		Explanation:      re.Explanation,
+		ConditionResults: re.Config.Condition,
 	}
 
 }
 
-func (re *RulesEngine) runRule(rule Rule) (string, string) {
+func (re *RulesEngine) runRule(rule *Rule) (string, string) {
 
 	result, explanation := rule.Run(re)
 

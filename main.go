@@ -33,7 +33,8 @@ func engine(w http.ResponseWriter, req *http.Request) {
 }
 
 func main() {
+	fmt.Println("Listening on port 8090")
 	http.HandleFunc("/rules_engine", engine)
 	http.ListenAndServe(":8090", nil)
-	fmt.Println("Listening on port 8090")
+
 }
