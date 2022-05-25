@@ -63,8 +63,6 @@ func toFloat64(value interface{}, re *RulesEngine) float64 {
 			return 0
 		}
 		return retVal
-	case int:
-		return float64(v)
 	case float64:
 		return v
 	default:
@@ -98,12 +96,6 @@ func toBool(value interface{}, re *RulesEngine) bool {
 		} else {
 			return false
 		}
-	case int:
-		if v != 1 {
-			return true
-		} else {
-			return false
-		}
 	case float64:
 		if v != 1 {
 			return true
@@ -111,7 +103,6 @@ func toBool(value interface{}, re *RulesEngine) bool {
 			return false
 		}
 	default:
-		fmt.Println(value)
 		fmt.Println("unknown type for toBool")
 	}
 	return false
@@ -135,8 +126,6 @@ func toExplanation(value interface{}, re *RulesEngine) string {
 		return re.Operators()[v.Operator].Explanation(v.LeftOperand, v.RightOperand, toBool(result, re))
 	case string:
 		return v
-	case int:
-		return strconv.Itoa(v)
 	case float64:
 		return strconv.FormatFloat(v, 'E', -1, 64)
 	case bool:
@@ -147,7 +136,7 @@ func toExplanation(value interface{}, re *RulesEngine) string {
 		}
 
 	default:
-		fmt.Println("unknown type for toString")
+		fmt.Println("unknown type for toExplanation")
 	}
 	return ""
 }
@@ -170,8 +159,6 @@ func toString(value interface{}, re *RulesEngine) string {
 		return toString(result, re)
 	case string:
 		return v
-	case int:
-		return strconv.Itoa(v)
 	case float64:
 		return strconv.FormatFloat(v, 'E', -1, 64)
 	case bool:
@@ -207,7 +194,6 @@ func New(config RulesConfig) *RulesEngine {
 }
 
 func (re *RulesEngine) Run() (string, string) {
-	//re.stack = []RuleResult{}
 	result, explanation := re.runRule(re.Config.Condition)
 	re.Outcome = result
 	re.Explanation = explanation
